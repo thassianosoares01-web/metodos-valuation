@@ -14,7 +14,7 @@ import hmac
 # ==========================================
 st.set_page_config(page_title="Asset Manager Pro", layout="wide", page_icon="📈")
 
-# CSS: Estilo Dashboard Profissional
+# CSS: Estilo Dashboard Profissional + Botão LinkedIn
 st.markdown("""
 <style>
     .stMetric {
@@ -31,6 +31,24 @@ st.markdown("""
     .stMetric div[data-testid="stMetricValue"] {
         font-size: 24px !important;
         color: #1f2937;
+    }
+    /* Estilo do Botão LinkedIn */
+    .linkedin-btn {
+        display: inline-flex;
+        align-items: center;
+        background-color: #0077b5;
+        color: white !important;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        font-family: sans-serif;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: background-color 0.3s;
+    }
+    .linkedin-btn:hover {
+        background-color: #005582;
+        text-decoration: none;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -146,8 +164,6 @@ def calcular_cagr(serie, fator_anual):
     retorno_total = (1 + serie).prod()
     n = len(serie)
     if fator_anual == 1: return retorno_total - 1
-    
-    # Se fator anual for 12 (mensal) ou 252 (diário)
     expoente = fator_anual / n
     try:
         return (retorno_total ** expoente) - 1
@@ -159,14 +175,10 @@ def gerar_tabela_performance(df_retornos, fator_anual):
     for ativo in df_retornos.columns:
         serie = df_retornos[ativo]
         ret_total = calcular_cagr(serie, fator_anual)
-        
-        # Define periodos para histórico
         p_12m = 12 if fator_anual == 12 else 252
         p_24m = 24 if fator_anual == 12 else 504
-        
         ret_12m = calcular_cagr(serie.tail(p_12m), fator_anual) if len(serie) >= p_12m else np.nan
         ret_24m = calcular_cagr(serie.tail(p_24m), fator_anual) if len(serie) >= p_24m else np.nan
-            
         stats.append({
             "Ativo": ativo,
             "Média Histórica (Total)": ret_total * 100,
@@ -186,15 +198,13 @@ def min_vol(w, r, c, rf): return calc_portfolio(w, r, c, rf)[1]
 
 def monte_carlo(mu_anual, vol_anual, valor_ini, aporte_mensal_ini, anos, inflacao_anual, n_sim=500):
     if np.isnan(mu_anual) or np.isnan(vol_anual) or vol_anual == 0:
-        return np.zeros(12), np.zeros(12), np.zeros(12), 12, np.zeros(12) # Retorna zeros se erro
+        return np.zeros(12), np.zeros(12), np.zeros(12), 12, np.zeros(12)
 
     dt = 1/12
     steps = int(anos * 12)
     caminhos = np.zeros((n_sim, steps + 1))
     caminhos[:, 0] = valor_ini
     aporte_atual = aporte_mensal_ini
-    
-    # Linha Tira-Teima (Teórica - Sem volatilidade)
     linha_teorica = np.zeros(steps + 1)
     linha_teorica[0] = valor_ini
     taxa_mensal_equiv = (1 + mu_anual)**(1/12) - 1
@@ -204,14 +214,10 @@ def monte_carlo(mu_anual, vol_anual, valor_ini, aporte_mensal_ini, anos, inflaca
         if t > 1 and (t-1) % 12 == 0: 
             aporte_atual *= (1 + inflacao_anual)
             aporte_teorico *= (1 + inflacao_anual)
-            
-        # Monte Carlo (Aleatório)
         z = np.random.normal(0, 1, n_sim)
         drift = (mu_anual - 0.5 * vol_anual**2) * dt
         diffusion = vol_anual * np.sqrt(dt) * z
         caminhos[:, t] = caminhos[:, t-1] * np.exp(drift + diffusion) + aporte_atual
-        
-        # Teórico (Fixo)
         linha_teorica[t] = linha_teorica[t-1] * (1 + taxa_mensal_equiv) + aporte_teorico
         
     return np.percentile(caminhos, 95, axis=0), np.percentile(caminhos, 50, axis=0), np.percentile(caminhos, 5, axis=0), steps, linha_teorica
@@ -225,17 +231,32 @@ def gerar_hover_text(nome, ret, vol, sharpe, pesos, ativos):
 # ==========================================
 # 3. INTERFACE E NAVEGAÇÃO
 # ==========================================
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2910/2910312.png", width=80)
 st.sidebar.title("Asset Manager Pro")
 st.sidebar.markdown("---")
-# Menu completo restaurado
 opcao = st.sidebar.radio("Navegação:", ["🏠 Início", "📊 Valuation (Ações)", "📉 Otimização (Markowitz)"])
+
+# RODAPÉ COM ASSINATURA
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Desenvolvido por:**")
+st.sidebar.markdown("[Thassiano Soares](https://www.linkedin.com/in/thassianosoares/)")
 
 # --- PÁGINA INICIAL (HOME) ---
 if opcao == "🏠 Início":
     st.title("Asset Manager Pro")
     st.markdown("Bem-vindo ao seu painel de controle financeiro. Escolha uma ferramenta abaixo ou no menu lateral para começar.")
-    st.markdown("---")
+    
+    # --- BOTÃO LINKEDIN ESTILIZADO ---
+    st.markdown("""
+        <a href="https://www.linkedin.com/in/thassianosoares/" target="_blank" class="linkedin-btn">
+            <img src="https://content.linkedin.com/content/dam/me/business/en-us/amp/brand-site/v2/bg/LI-In-Bug.png" width="20" style="margin-right: 10px; filter: brightness(0) invert(1);">
+            Conectar no LinkedIn
+        </a>
+        <br><br>
+    """, unsafe_allow_html=True)
+    # ---------------------------------
 
+    st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
         with st.container(border=True):
@@ -265,7 +286,6 @@ elif opcao == "📊 Valuation (Ações)":
     with st.container(border=True):
         st.subheader("1. Parâmetros de Entrada")
         c1, c2, c3 = st.columns(3)
-        # Inputs com Tooltips
         tb = c1.number_input("Taxa Bazin (Dec)", 0.01, 0.50, 0.08, step=0.01, format="%.2f", help="Taxa Mínima de Atratividade (TMA). Comum no Brasil: 0.06 a 0.10.")
         tg = c2.number_input("Taxa Desconto - Gordon", 0.01, 0.50, 0.12, step=0.01, format="%.2f", help="Taxa exigida pelo acionista (Custo de Capital). Quanto maior o risco, maior a taxa.")
         tc = c3.number_input("Taxa Crescimento - Gordon", 0.00, 0.10, 0.02, step=0.01, format="%.2f", help="Crescimento perpétuo (g). Deve ser menor que o PIB. Comum: 0.00 a 0.04.")
@@ -290,19 +310,15 @@ elif opcao == "📊 Valuation (Ações)":
             df = pd.DataFrame(res_valuation)
             
             st.markdown("### 🎯 Dashboard de Resultados")
-            # Gráfico de Barras com as 4 Barras
             tickers_list = df['Ticker'].tolist()
             fig = go.Figure()
-            # Preço Atual
+            # AS 4 BARRAS AGORA
             fig.add_trace(go.Bar(x=tickers_list, y=df['Preço Atual'], name='Preço Atual', marker_color='#95a5a6', text=df['Preço Atual'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            # Graham
             fig.add_trace(go.Bar(x=tickers_list, y=df['Graham'], name='Graham', marker_color='#27ae60', text=df['Graham'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            # Bazin
             fig.add_trace(go.Bar(x=tickers_list, y=df['Bazin'], name='Bazin', marker_color='#2980b9', text=df['Bazin'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            # Gordon (NOVO)
             fig.add_trace(go.Bar(x=tickers_list, y=df['Gordon'], name='Gordon', marker_color='#9b59b6', text=df['Gordon'], textposition='auto', texttemplate='R$ %{y:.2f}'))
             
-            fig.update_layout(barmode='group', title="Comparativo: Preço de Tela vs. Preço Justo", yaxis_tickprefix="R$ ", template="plotly_white", height=400)
+            fig.update_layout(barmode='group', title="Comparativo: Preço de Tela vs. Preço Justo", yaxis_tickprefix="R$ ", template="plotly_white", height=400, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
             st.plotly_chart(fig, use_container_width=True)
 
             st.markdown("#### Detalhamento")
@@ -341,7 +357,6 @@ elif opcao == "📉 Otimização (Markowitz)":
             if len(cols_selecionadas) < 2: st.error("Selecione pelo menos 2 ativos."); st.stop()
             
             df_ativos = df_raw[cols_selecionadas].dropna()
-            
             if tipo_dados.startswith("Preços"):
                 retornos = df_ativos.pct_change().dropna()
             else:
@@ -401,7 +416,6 @@ elif opcao == "📉 Otimização (Markowitz)":
             col1.metric("Sharpe", f"{res['s_opt']:.2f}")
             col2.metric("Retorno Esp.", f"{res['r_opt']:.1%}")
             col3.metric("Risco", f"{res['v_opt']:.1%}")
-            
             c_chart1, c_chart2 = st.columns([2, 1])
             with c_chart1:
                 max_ret = max(res['visoes']); 
@@ -428,8 +442,7 @@ elif opcao == "📉 Otimização (Markowitz)":
                 fig_pie.update_layout(title="Alocação Ideal", height=400, showlegend=False)
                 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
-
-            st.markdown("### 🔮 Projeção Monte Carlo")
+            st.markdown("---"); st.markdown("### 🔮 Projeção Monte Carlo")
             with st.container(border=True):
                 c1, c2, c3, c4 = st.columns(4)
                 inv_ini = c1.number_input("Inicial (R$)", 10000.0)
