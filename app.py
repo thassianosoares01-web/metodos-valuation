@@ -14,7 +14,7 @@ import hmac
 # ==========================================
 st.set_page_config(page_title="Asset Manager Pro", layout="wide", page_icon="📈")
 
-# CSS: Estilo Dashboard Profissional + Botão LinkedIn
+# CSS: Estilo Dashboard Profissional
 st.markdown("""
 <style>
     .stMetric {
@@ -32,23 +32,14 @@ st.markdown("""
         font-size: 24px !important;
         color: #1f2937;
     }
-    /* Estilo do Botão LinkedIn */
-    .linkedin-btn {
-        display: inline-flex;
-        align-items: center;
-        background-color: #0077b5;
-        color: white !important;
-        padding: 10px 20px;
-        border-radius: 5px;
+    /* Link do rodapé */
+    .footer-link {
+        color: #0077b5 !important;
         text-decoration: none;
         font-weight: bold;
-        font-family: sans-serif;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        transition: background-color 0.3s;
     }
-    .linkedin-btn:hover {
-        background-color: #005582;
-        text-decoration: none;
+    .footer-link:hover {
+        text-decoration: underline;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -238,19 +229,25 @@ opcao = st.sidebar.radio("Navegação:", ["🏠 Início", "📊 Valuation (Açõ
 
 # RODAPÉ COM ASSINATURA
 st.sidebar.markdown("---")
-st.sidebar.markdown("**Desenvolvido por:**")
-st.sidebar.markdown("[Thassiano Soares](https://www.linkedin.com/in/thassianosoares/)")
+st.sidebar.markdown("Desenvolvido por:")
+st.sidebar.markdown('<a href="https://www.linkedin.com/in/thassianosoares/" target="_blank" class="footer-link">Thassiano Soares</a>', unsafe_allow_html=True)
+
 
 # --- PÁGINA INICIAL (HOME) ---
 if opcao == "🏠 Início":
     st.title("Asset Manager Pro")
     st.markdown("Bem-vindo ao seu painel de controle financeiro. Escolha uma ferramenta abaixo ou no menu lateral para começar.")
     
-    # --- BOTÃO LINKEDIN ESTILIZADO ---
+    # --- BOTÃO LINKEDIN OFICIAL (Com SVG embutido) ---
     st.markdown("""
-        <a href="https://www.linkedin.com/in/thassianosoares/" target="_blank" class="linkedin-btn">
-            <img src="https://content.linkedin.com/content/dam/me/business/en-us/amp/brand-site/v2/bg/LI-In-Bug.png" width="20" style="margin-right: 10px; filter: brightness(0) invert(1);">
-            Conectar no LinkedIn
+        <br>
+        <a href="https://www.linkedin.com/in/thassianosoares/" target="_blank" style="text-decoration: none;">
+            <div style="display: inline-flex; align-items: center; background-color: #0077b5; color: white; padding: 8px 16px; border-radius: 4px; font-family: sans-serif; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white" style="margin-right: 8px;">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+                <span>Conectar no LinkedIn</span>
+            </div>
         </a>
         <br><br>
     """, unsafe_allow_html=True)
@@ -312,7 +309,6 @@ elif opcao == "📊 Valuation (Ações)":
             st.markdown("### 🎯 Dashboard de Resultados")
             tickers_list = df['Ticker'].tolist()
             fig = go.Figure()
-            # AS 4 BARRAS AGORA
             fig.add_trace(go.Bar(x=tickers_list, y=df['Preço Atual'], name='Preço Atual', marker_color='#95a5a6', text=df['Preço Atual'], textposition='auto', texttemplate='R$ %{y:.2f}'))
             fig.add_trace(go.Bar(x=tickers_list, y=df['Graham'], name='Graham', marker_color='#27ae60', text=df['Graham'], textposition='auto', texttemplate='R$ %{y:.2f}'))
             fig.add_trace(go.Bar(x=tickers_list, y=df['Bazin'], name='Bazin', marker_color='#2980b9', text=df['Bazin'], textposition='auto', texttemplate='R$ %{y:.2f}'))
