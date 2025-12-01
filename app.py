@@ -230,7 +230,7 @@ st.sidebar.markdown("---")
 # Menu completo restaurado
 opcao = st.sidebar.radio("Navegação:", ["🏠 Início", "📊 Valuation (Ações)", "📉 Otimização (Markowitz)"])
 
-# --- PÁGINA INICIAL (HOME) - RESTAURADA ---
+# --- PÁGINA INICIAL (HOME) ---
 if opcao == "🏠 Início":
     st.title("Asset Manager Pro")
     st.markdown("Bem-vindo ao seu painel de controle financeiro. Escolha uma ferramenta abaixo ou no menu lateral para começar.")
@@ -259,7 +259,7 @@ if opcao == "🏠 Início":
             """)
             st.info("Ideal para: Alocação e Rebalanceamento.")
 
-# --- PÁGINA VALUATION - RESTAURADA COM VISUAL ---
+# --- PÁGINA VALUATION ---
 elif opcao == "📊 Valuation (Ações)":
     st.title("📊 Valuation Fundamentalista")
     with st.container(border=True):
@@ -290,13 +290,19 @@ elif opcao == "📊 Valuation (Ações)":
             df = pd.DataFrame(res_valuation)
             
             st.markdown("### 🎯 Dashboard de Resultados")
-            # Gráfico de Barras Bonito (Restaurado)
+            # Gráfico de Barras com as 4 Barras
             tickers_list = df['Ticker'].tolist()
             fig = go.Figure()
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Preço Atual'], name='Preço Atual', marker_color='#95a5a6', text=df['Preço Atual'], texttemplate='R$ %{y:.2f}'))
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Graham'], name='Graham', marker_color='#27ae60', text=df['Graham'], texttemplate='R$ %{y:.2f}'))
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Bazin'], name='Bazin', marker_color='#2980b9'))
-            fig.update_layout(barmode='group', title="Preço de Tela vs. Preço Justo", yaxis_tickprefix="R$ ", template="plotly_white", height=400)
+            # Preço Atual
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Preço Atual'], name='Preço Atual', marker_color='#95a5a6', text=df['Preço Atual'], textposition='auto', texttemplate='R$ %{y:.2f}'))
+            # Graham
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Graham'], name='Graham', marker_color='#27ae60', text=df['Graham'], textposition='auto', texttemplate='R$ %{y:.2f}'))
+            # Bazin
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Bazin'], name='Bazin', marker_color='#2980b9', text=df['Bazin'], textposition='auto', texttemplate='R$ %{y:.2f}'))
+            # Gordon (NOVO)
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Gordon'], name='Gordon', marker_color='#9b59b6', text=df['Gordon'], textposition='auto', texttemplate='R$ %{y:.2f}'))
+            
+            fig.update_layout(barmode='group', title="Comparativo: Preço de Tela vs. Preço Justo", yaxis_tickprefix="R$ ", template="plotly_white", height=400)
             st.plotly_chart(fig, use_container_width=True)
 
             st.markdown("#### Detalhamento")
@@ -304,13 +310,13 @@ elif opcao == "📊 Valuation (Ações)":
             cols = {k: v for k, v in format_dict.items() if k in df.columns}
             st.dataframe(df.style.format(cols), use_container_width=True)
             
-            with st.expander("📂 Histórico de Dividendos"):
+            with st.expander("📂 Histórico de Dividendos Utilizado"):
                 if res_dividendos:
                     df_divs = pd.DataFrame(res_dividendos).set_index("Ticker")
                     st.dataframe(df_divs.style.format("R$ {:.4f}", na_rep="-"), use_container_width=True)
         else: st.warning("Nenhum dado encontrado.")
 
-# --- PÁGINA MARKOWITZ - RESTAURADA COM MATEMÁTICA CORRETA ---
+# --- PÁGINA MARKOWITZ ---
 elif opcao == "📉 Otimização (Markowitz)":
     st.title("📉 Otimizador de Carteira")
     
@@ -319,7 +325,6 @@ elif opcao == "📉 Otimização (Markowitz)":
         arquivo = c1.file_uploader("📂 Upload do Excel", type=['xlsx'])
         with c2:
             st.markdown("**Calibragem**")
-            # Seletor crucial para corrigir o erro de volatilidade
             tipo_dados = st.radio("Conteúdo do Excel:", ["Preços Históricos (R$)", "Retornos Já Calculados (%)"], horizontal=True)
             freq_option = st.selectbox("Periodicidade:", ["Diário (252)", "Mensal (12)", "Sem Anualização"])
             if freq_option.startswith("Diário"): fator_anual = 252
@@ -337,11 +342,10 @@ elif opcao == "📉 Otimização (Markowitz)":
             
             df_ativos = df_raw[cols_selecionadas].dropna()
             
-            # Lógica de Leitura Correta
             if tipo_dados.startswith("Preços"):
                 retornos = df_ativos.pct_change().dropna()
             else:
-                retornos = df_ativos # Usa direto se já for retorno
+                retornos = df_ativos
             
             df_perf = gerar_tabela_performance(retornos, fator_anual)
             st.markdown("---")
