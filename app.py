@@ -45,28 +45,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- LOGIN (MANTIDO) ---
-def check_password():
-    def password_entered():
-        if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]
-        else:
-            st.session_state["password_correct"] = False
+#def check_password():
+ #   def password_entered():
+  #      if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
+   #         st.session_state["password_correct"] = True
+    #        del st.session_state["password"]
+     #   else:
+      #      st.session_state["password_correct"] = False
 
-    if st.session_state.get("password_correct", False):
-        return True
+    #if st.session_state.get("password_correct", False):
+     #   return True
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.info("🔒 Acesso Restrito")
-        st.text_input("Senha de Acesso", type="password", on_change=password_entered, key="password")
-        if "password_correct" in st.session_state:
-            st.error("Senha incorreta.")
-    return False
+    #col1, col2, col3 = st.columns([1, 2, 1])
+    #with col2:
+     #   st.markdown("<br><br>", unsafe_allow_html=True)
+      #  st.info("🔒 Acesso Restrito")
+       # st.text_input("Senha de Acesso", type="password", on_change=password_entered, key="password")
+        #if "password_correct" in st.session_state:
+         #   st.error("Senha incorreta.")
+    #return False
 
-if not check_password():
-    st.stop()
+#if not check_password():
+ #   st.stop()
 
 # ==========================================
 # 1. FUNÇÕES DE CÁLCULO
@@ -487,3 +487,4 @@ elif opcao == "📉 Otimização (Markowitz)":
                     st.plotly_chart(fig_sim, use_container_width=True)
                     final_val = opt_mid[-1]
                     st.success(f"💰 **Patrimônio Estimado (Cenário Ideal):** R$ {final_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
