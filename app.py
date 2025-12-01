@@ -14,7 +14,6 @@ import hmac
 # ==========================================
 st.set_page_config(page_title="Asset Manager Pro", layout="wide", page_icon="📈")
 
-# Estilo CSS para Cards e Métricas
 st.markdown("""
 <style>
     .stMetric {
@@ -43,7 +42,6 @@ def check_password():
     if st.session_state.get("password_correct", False):
         return True
 
-    # Tela de Login Limpa
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🔒 Acesso Restrito")
@@ -59,7 +57,6 @@ if not check_password():
 # ==========================================
 # 1. FUNÇÕES DO SISTEMA
 # ==========================================
-# (Mantendo suas funções originais de cálculo)
 def buscar_dividendos_ultimos_5_anos(ticker):
     url = f"https://playinvest.com.br/dividendos/{ticker.lower()}"
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -201,7 +198,6 @@ def gerar_hover_text(nome, ret, vol, sharpe, pesos, ativos):
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2910/2910312.png", width=80)
 st.sidebar.markdown("### Menu")
 
-# Menu atualizado com Home Page
 opcao = st.sidebar.radio("Navegação:", ["🏠 Início", "📊 Valuation (Ações)", "📉 Otimização (Markowitz)"])
 
 # --- PÁGINA INICIAL (HOME) ---
@@ -209,9 +205,7 @@ if opcao == "🏠 Início":
     st.title("Asset Manager Pro")
     st.markdown("Bem-vindo ao seu painel de controle financeiro. Escolha uma ferramenta abaixo ou no menu lateral para começar.")
     st.markdown("---")
-
     col1, col2 = st.columns(2)
-
     with col1:
         with st.container(border=True):
             st.subheader("📊 Valuation Fundamentalista")
@@ -223,7 +217,6 @@ if opcao == "🏠 Início":
             * **Método de Gordon** (Crescimento Perpétuo)
             """)
             st.info("Ideal para: Investidores de Longo Prazo (Buy & Hold).")
-
     with col2:
         with st.container(border=True):
             st.subheader("📉 Otimização de Portfólio")
@@ -242,9 +235,16 @@ elif opcao == "📊 Valuation (Ações)":
     with st.container(border=True):
         st.subheader("1. Parâmetros de Entrada")
         c1, c2, c3 = st.columns(3)
-        tb = c1.number_input("Taxa Bazin (Dec)", 0.01, 0.50, 0.08, step=0.01, format="%.2f")
-        tg = c2.number_input("Taxa Desconto - Gordon", 0.01, 0.50, 0.12, step=0.01, format="%.2f")
-        tc = c3.number_input("Taxa Crescimento - Gordon", 0.00, 0.10, 0.02, step=0.01, format="%.2f")
+        # --- ADICIONADOS OS TOOLTIPS (HELP) AQUI ---
+        tb = c1.number_input("Taxa Bazin (Dec)", 0.01, 0.50, 0.08, step=0.01, format="%.2f",
+                             help="Taxa Mínima de Atratividade (TMA). O método sugere que o preço justo é onde o dividendo médio representa pelo menos essa taxa de retorno. Comum no Brasil: 0.06 a 0.10.")
+        
+        tg = c2.number_input("Taxa Desconto - Gordon", 0.01, 0.50, 0.12, step=0.01, format="%.2f",
+                             help="Taxa de retorno exigida pelo acionista (custo de capital próprio). Quanto maior o risco percebido da empresa/país, maior deve ser essa taxa.")
+        
+        tc = c3.number_input("Taxa Crescimento - Gordon", 0.00, 0.10, 0.02, step=0.01, format="%.2f",
+                             help="Taxa de crescimento perpétuo (g) esperada para os dividendos. Deve ser conservadora, geralmente menor que o crescimento do PIB a longo prazo. Comum: 0.00 a 0.04.")
+        # -------------------------------------------
         tickers = st.text_area("Tickers (Ex: BBAS3, ITSA4)", "BBAS3, ITSA4, WEG3, VALE3")
     
     if st.button("🔍 Calcular Preço Justo", type="primary"):
