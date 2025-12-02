@@ -14,7 +14,6 @@ import hmac
 # ==========================================
 st.set_page_config(page_title="Asset Manager Pro", layout="wide", page_icon="📈")
 
-# CSS: Estilo Dashboard Profissional
 st.markdown("""
 <style>
     .stMetric {
@@ -32,7 +31,6 @@ st.markdown("""
         font-size: 24px !important;
         color: #1f2937;
     }
-    /* Link do rodapé */
     .footer-link {
         color: #0077b5 !important;
         text-decoration: none;
@@ -44,29 +42,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGIN (MANTIDO) ---
-#def check_password():
- #   def password_entered():
-  #      if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
-   #         st.session_state["password_correct"] = True
-    #        del st.session_state["password"]
-     #   else:
-      #      st.session_state["password_correct"] = False
-
-    #if st.session_state.get("password_correct", False):
-     #   return True
-
-    #col1, col2, col3 = st.columns([1, 2, 1])
-    #with col2:
-     #   st.markdown("<br><br>", unsafe_allow_html=True)
-      #  st.info("🔒 Acesso Restrito")
-       # st.text_input("Senha de Acesso", type="password", on_change=password_entered, key="password")
-        #if "password_correct" in st.session_state:
-         #   st.error("Senha incorreta.")
-    #return False
-
-#if not check_password():
- #   st.stop()
+# --- LOGIN (ATIVO SE CONFIGURADO) ---
 
 # ==========================================
 # 1. FUNÇÕES DE CÁLCULO
@@ -155,29 +131,26 @@ def calcular_cagr(serie, fator_anual):
     retorno_total = (1 + serie).prod()
     n = len(serie)
     if fator_anual == 1: return retorno_total - 1
-    
-    # Se fator anual for 12 (mensal) ou 252 (diário)
     expoente = fator_anual / n
-    try:
-        return (retorno_total ** expoente) - 1
-    except:
-        return 0.0
+    try: return (retorno_total ** expoente) - 1
+    except: return 0.0
 
 def gerar_tabela_performance(df_retornos, fator_anual):
     stats = []
     for ativo in df_retornos.columns:
         serie = df_retornos[ativo]
         ret_total = calcular_cagr(serie, fator_anual)
-        
-        # Define periodos para histórico
         p_12m = 12 if fator_anual == 12 else 252
         p_24m = 24 if fator_anual == 12 else 504
-        
         ret_12m = calcular_cagr(serie.tail(p_12m), fator_anual) if len(serie) >= p_12m else np.nan
         ret_24m = calcular_cagr(serie.tail(p_24m), fator_anual) if len(serie) >= p_24m else np.nan
-            
+        
+        # Cálculo do Retorno Absoluto (Tira-Teima)
+        ret_absoluto_simples = (1 + serie).prod() - 1
+        
         stats.append({
             "Ativo": ativo,
+            "Retorno Total do Arquivo": ret_absoluto_simples * 100, # Coluna Nova
             "Média Histórica (Total)": ret_total * 100,
             "Últimos 12 Meses": ret_12m * 100 if not np.isnan(ret_12m) else None,
             "Últimos 24 Meses": ret_24m * 100 if not np.isnan(ret_24m) else None
@@ -195,34 +168,25 @@ def min_vol(w, r, c, rf): return calc_portfolio(w, r, c, rf)[1]
 
 def monte_carlo(mu_anual, vol_anual, valor_ini, aporte_mensal_ini, anos, inflacao_anual, n_sim=500):
     if np.isnan(mu_anual) or np.isnan(vol_anual) or vol_anual == 0:
-        return np.zeros(12), np.zeros(12), np.zeros(12), 12, np.zeros(12) # Retorna zeros se erro
-
+        return np.zeros(12), np.zeros(12), np.zeros(12), 12, np.zeros(12)
     dt = 1/12
     steps = int(anos * 12)
     caminhos = np.zeros((n_sim, steps + 1))
     caminhos[:, 0] = valor_ini
     aporte_atual = aporte_mensal_ini
-    
-    # Linha Tira-Teima (Teórica - Sem volatilidade)
     linha_teorica = np.zeros(steps + 1)
     linha_teorica[0] = valor_ini
     taxa_mensal_equiv = (1 + mu_anual)**(1/12) - 1
     aporte_teorico = aporte_mensal_ini
-
     for t in range(1, steps + 1):
         if t > 1 and (t-1) % 12 == 0: 
             aporte_atual *= (1 + inflacao_anual)
             aporte_teorico *= (1 + inflacao_anual)
-            
-        # Monte Carlo (Aleatório)
         z = np.random.normal(0, 1, n_sim)
         drift = (mu_anual - 0.5 * vol_anual**2) * dt
         diffusion = vol_anual * np.sqrt(dt) * z
         caminhos[:, t] = caminhos[:, t-1] * np.exp(drift + diffusion) + aporte_atual
-        
-        # Teórico (Fixo)
         linha_teorica[t] = linha_teorica[t-1] * (1 + taxa_mensal_equiv) + aporte_teorico
-        
     return np.percentile(caminhos, 95, axis=0), np.percentile(caminhos, 50, axis=0), np.percentile(caminhos, 5, axis=0), steps, linha_teorica
 
 def gerar_hover_text(nome, ret, vol, sharpe, pesos, ativos):
@@ -237,21 +201,15 @@ def gerar_hover_text(nome, ret, vol, sharpe, pesos, ativos):
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2910/2910312.png", width=80)
 st.sidebar.title("Asset Manager Pro")
 st.sidebar.markdown("---")
-# Menu completo restaurado
 opcao = st.sidebar.radio("Navegação:", ["🏠 Início", "📊 Valuation (Ações)", "📉 Otimização (Markowitz)"])
 
-# RODAPÉ COM ASSINATURA
 st.sidebar.markdown("---")
 st.sidebar.markdown("Desenvolvido por:")
 st.sidebar.markdown('<a href="https://www.linkedin.com/in/thassianosoares/" target="_blank" class="footer-link">Thassiano Soares</a>', unsafe_allow_html=True)
 
-
-# --- PÁGINA INICIAL (HOME) ---
 if opcao == "🏠 Início":
     st.title("Asset Manager Pro")
-    st.markdown("Bem-vindo ao seu painel de controle financeiro. Escolha uma ferramenta abaixo ou no menu lateral para começar.")
-    
-    # --- BOTÃO LINKEDIN OFICIAL (Com SVG embutido) ---
+    st.markdown("Bem-vindo ao seu painel de controle financeiro.")
     st.markdown("""
         <br>
         <a href="https://www.linkedin.com/in/thassianosoares/" target="_blank" style="text-decoration: none;">
@@ -264,45 +222,27 @@ if opcao == "🏠 Início":
         </a>
         <br><br>
     """, unsafe_allow_html=True)
-    # ---------------------------------
-
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
         with st.container(border=True):
             st.subheader("📊 Valuation Fundamentalista")
-            st.markdown("""
-            Descubra o preço justo de ações utilizando métodos clássicos.
-            * **Método de Graham**
-            * **Método de Bazin**
-            * **Método de Gordon**
-            """)
-            st.info("Ideal para: Investidores de Longo Prazo.")
-
+            st.markdown("Descubra o preço justo de ações utilizando métodos clássicos (Graham, Bazin e Gordon).")
     with col2:
         with st.container(border=True):
             st.subheader("📉 Otimização de Portfólio")
-            st.markdown("""
-            Utilize a Teoria Moderna de Portfólio (Markowitz) para balancear sua carteira.
-            * **Fronteira Eficiente**
-            * **Simulação de Monte Carlo**
-            * **Análise de Risco x Retorno**
-            """)
-            st.info("Ideal para: Alocação e Rebalanceamento.")
+            st.markdown("Utilize a Teoria Moderna de Portfólio (Markowitz) e Simulação de Monte Carlo.")
 
-# --- PÁGINA VALUATION ---
 elif opcao == "📊 Valuation (Ações)":
     st.title("📊 Valuation Fundamentalista")
     with st.container(border=True):
         st.subheader("1. Parâmetros de Entrada")
         c1, c2, c3 = st.columns(3)
-        # Inputs com Tooltips
-        tb = c1.number_input("Taxa Bazin (Dec)", 0.01, 0.50, 0.08, step=0.01, format="%.2f", help="Taxa Mínima de Atratividade (TMA). Comum no Brasil: 0.06 a 0.10.")
-        tg = c2.number_input("Taxa Desconto - Gordon", 0.01, 0.50, 0.12, step=0.01, format="%.2f", help="Taxa exigida pelo acionista (Custo de Capital). Quanto maior o risco, maior a taxa.")
-        tc = c3.number_input("Taxa Crescimento - Gordon", 0.00, 0.10, 0.02, step=0.01, format="%.2f", help="Crescimento perpétuo (g). Deve ser menor que o PIB. Comum: 0.00 a 0.04.")
-        tickers = st.text_area("Tickers (Ex: BBAS3, ITSA4)", "BBAS3, ITSA4, WEG3, VALE3")
-    
-    if st.button("🔍 Calcular Preço Justo", type="primary"):
+        tb = c1.number_input("Taxa Bazin (Dec)", 0.01, 0.50, 0.08, step=0.01, format="%.2f", help="Taxa Mínima de Atratividade (TMA).")
+        tg = c2.number_input("Taxa Desconto - Gordon", 0.01, 0.50, 0.12, step=0.01, format="%.2f", help="Custo de Capital.")
+        tc = c3.number_input("Taxa Crescimento - Gordon", 0.00, 0.10, 0.02, step=0.01, format="%.2f", help="Crescimento perpétuo (g).")
+        tickers = st.text_area("Tickers", "BBAS3, ITSA4, WEG3")
+    if st.button("🔍 Calcular", type="primary"):
         lista = [t.strip() for t in tickers.split(',') if t.strip()]
         res_valuation = []
         res_dividendos = [] 
@@ -316,48 +256,28 @@ elif opcao == "📊 Valuation (Ações)":
                 for ano, valor in hist: linha_div[str(ano)] = valor
                 res_dividendos.append(linha_div)
             bar.progress((i+1)/len(lista))
-            
         if res_valuation:
             df = pd.DataFrame(res_valuation)
-            
-            st.markdown("### 🎯 Dashboard de Resultados")
+            st.markdown("### 🎯 Resultados")
             tickers_list = df['Ticker'].tolist()
             fig = go.Figure()
-            # AS 4 BARRAS AGORA
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Preço Atual'], name='Preço Atual', marker_color='#95a5a6', text=df['Preço Atual'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Graham'], name='Graham', marker_color='#27ae60', text=df['Graham'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Bazin'], name='Bazin', marker_color='#2980b9', text=df['Bazin'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            fig.add_trace(go.Bar(x=tickers_list, y=df['Gordon'], name='Gordon', marker_color='#9b59b6', text=df['Gordon'], textposition='auto', texttemplate='R$ %{y:.2f}'))
-            
-            fig.update_layout(barmode='group', title="Comparativo: Preço de Tela vs. Preço Justo", yaxis_tickprefix="R$ ", template="plotly_white", height=400, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Preço Atual'], name='Preço Atual', marker_color='#95a5a6', text=df['Preço Atual'], texttemplate='R$ %{y:.2f}'))
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Graham'], name='Graham', marker_color='#27ae60', text=df['Graham'], texttemplate='R$ %{y:.2f}'))
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Bazin'], name='Bazin', marker_color='#2980b9', text=df['Bazin'], texttemplate='R$ %{y:.2f}'))
+            fig.add_trace(go.Bar(x=tickers_list, y=df['Gordon'], name='Gordon', marker_color='#9b59b6', text=df['Gordon'], texttemplate='R$ %{y:.2f}'))
+            fig.update_layout(barmode='group', yaxis_tickprefix="R$ ", template="plotly_white", height=400)
             st.plotly_chart(fig, use_container_width=True)
-
-            st.markdown("#### Detalhamento")
-            # --- FORMATAÇÃO CORRIGIDA AQUI ---
-            format_dict = {
-                "Preço Atual": "R$ {:.2f}", 
-                "DPA Est.": "R$ {:.4f}", 
-                "Graham": "R$ {:.2f}", 
-                "Bazin": "R$ {:.2f}", 
-                "Gordon": "R$ {:.2f}",
-                "Margem Graham (%)": "{:.2f}%", 
-                "Margem Bazin (%)": "{:.2f}%", 
-                "Margem Gordon (%)": "{:.2f}%"
-            }
-            # Aplica formatação segura
-            cols_existentes = {k: v for k, v in format_dict.items() if k in df.columns}
-            st.dataframe(df.style.format(cols_existentes), use_container_width=True)
-            
-            with st.expander("📂 Histórico de Dividendos Utilizado"):
+            format_dict = {"Preço Atual": "R$ {:.2f}", "DPA Est.": "R$ {:.4f}", "Graham": "R$ {:.2f}", "Bazin": "R$ {:.2f}", "Gordon": "R$ {:.2f}", "Margem Graham (%)": "{:.2f}%", "Margem Bazin (%)": "{:.2f}%", "Margem Gordon (%)": "{:.2f}%"}
+            cols = {k: v for k, v in format_dict.items() if k in df.columns}
+            st.dataframe(df.style.format(cols), use_container_width=True)
+            with st.expander("📂 Histórico de Dividendos"):
                 if res_dividendos:
                     df_divs = pd.DataFrame(res_dividendos).set_index("Ticker")
                     st.dataframe(df_divs.style.format("R$ {:.4f}", na_rep="-"), use_container_width=True)
         else: st.warning("Nenhum dado encontrado.")
 
-# --- PÁGINA MARKOWITZ ---
 elif opcao == "📉 Otimização (Markowitz)":
     st.title("📉 Otimizador de Carteira")
-    
     with st.container(border=True):
         c1, c2 = st.columns([2, 1])
         arquivo = c1.file_uploader("📂 Upload do Excel", type=['xlsx'])
@@ -374,28 +294,37 @@ elif opcao == "📉 Otimização (Markowitz)":
     if arquivo:
         try:
             df_raw = pd.read_excel(arquivo)
+            first_col = df_raw.iloc[:, 0]
+            if not np.issubdtype(first_col.dtype, np.number):
+                df_raw = df_raw.set_index(df_raw.columns[0])
+                # FORÇA PARSEAMENTO DE DATA COM . ou / e DIA PRIMEIRO
+                try:
+                    df_raw.index = pd.to_datetime(df_raw.index, dayfirst=True)
+                except:
+                    df_raw.index = pd.to_datetime(df_raw.index, dayfirst=True, errors='coerce')
+            
+            df_raw.sort_index(ascending=True, inplace=True)
             cols_numericas = df_raw.select_dtypes(include=[np.number]).columns.tolist()
             cols_selecionadas = st.multiselect("Selecione os ATIVOS:", options=df_raw.columns, default=cols_numericas)
-            if len(cols_selecionadas) < 2: st.error("Selecione pelo menos 2 ativos."); st.stop()
+            if len(cols_selecionadas) < 2: st.error("Selecione 2+ ativos."); st.stop()
             
             df_ativos = df_raw[cols_selecionadas].dropna()
-            
             if tipo_dados.startswith("Preços"):
                 retornos = df_ativos.pct_change().dropna()
             else:
                 retornos = df_ativos
             
+            # --- RAIO-X DO ARQUIVO (DIAGNÓSTICO INSTANTÂNEO) ---
             df_perf = gerar_tabela_performance(retornos, fator_anual)
             st.markdown("---")
-            st.info("Utilize a tabela abaixo para definir a **Visão de Retorno**.")
+            st.warning("⚠️ **Raio-X do Arquivo:** Confira se os números abaixo fazem sentido. Se 'Retorno Total' estiver negativo para uma ação que subiu, seu Excel pode estar com a fórmula invertida ou ordenação errada.")
             st.dataframe(df_perf.set_index("Ativo").style.format("{:.2f}%", na_rep="-"), use_container_width=True)
+            # ---------------------------------------------------
 
             cov_matrix = retornos.cov() * fator_anual
             media_historica = df_perf["Média Histórica (Total)"].values
-            
         except Exception as e: st.error(f"Erro: {e}"); st.stop()
         
-        st.markdown("### 🎛️ Definir Expectativas")
         with st.container(border=True):
             df_config = pd.DataFrame({
                 "Ativo": cols_selecionadas,
@@ -407,7 +336,7 @@ elif opcao == "📉 Otimização (Markowitz)":
             config_editada = st.data_editor(df_config, num_rows="fixed", hide_index=True, use_container_width=True)
             rf_input = st.number_input("Taxa Livre de Risco (%)", 0.0, 50.0, 10.0, format="%.2f") / 100
         
-        if st.button("✨ Otimizar Carteira", type="primary"):
+        if st.button("🚀 Otimizar", type="primary"):
             visoes = config_editada["Visão Retorno (%)"].values / 100
             pesos_user = config_editada["Peso Atual (%)"].values / 100
             bounds = [(r["Min (%)"]/100, r["Max (%)"]/100) for _, r in config_editada.iterrows()]
@@ -471,7 +400,7 @@ elif opcao == "📉 Otimização (Markowitz)":
                 inv_ini = c1.number_input("Inicial (R$)", 10000.0)
                 aporte = c2.number_input("Mensal (R$)", 1000.0)
                 anos = c3.number_input("Anos", 10)
-                inflacao = c4.number_input("Inflação (%)", 5.0) / 100
+                inflacao = c4.number_input("Inflação (%)", 5.0, format="%.2f") / 100
             if st.button("🎲 Simular", type="primary"):
                 if np.isnan(res['r_opt']): st.error("Erro.")
                 else:
@@ -487,4 +416,3 @@ elif opcao == "📉 Otimização (Markowitz)":
                     st.plotly_chart(fig_sim, use_container_width=True)
                     final_val = opt_mid[-1]
                     st.success(f"💰 **Patrimônio Estimado (Cenário Ideal):** R$ {final_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
